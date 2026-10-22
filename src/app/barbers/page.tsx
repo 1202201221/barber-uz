@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 type SearchParams = Promise<{ city?: string; q?: string }>;
 
+// `%` and `_` are LIKE wildcards, but a user typing them means the literal
+// character, so they are escaped before being wrapped in the contains pattern.
+function contains(value: string): string {
+  return `%${value.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+}
+
 export default async function BarbersPage({
   searchParams,
 }: {
@@ -35,11 +41,11 @@ export default async function BarbersPage({
       .order("experience_years", { ascending: false });
 
     if (params.city) {
-      query = query.ilike("salons.city", `%${params.city}%`);
+      query = query.ilike("salons.city", contains(params.city));
     }
 
     if (params.q) {
-      query = query.ilike("display_name", `%${params.q}%`);
+      query = query.ilike("display_name", contains(params.q));
     }
 
     const { data, error } = await query.limit(50);
